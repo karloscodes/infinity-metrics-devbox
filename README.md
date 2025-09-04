@@ -18,7 +18,6 @@ curl -fsSL https://raw.githubusercontent.com/karloscodes/infinity-metrics-devbox
 - Full InfinityMetrics server (Docker) via Caddy
 - Beautiful demo at `/` with confetti and event buttons
 - Extra subpage at `/alt.html` to register a page view on a different path
-- World view at `/world.html` (3D globe with realistic sales pulses)
 - Admin dashboard under `/admin`
 - Runs on http://localhost:8080 (no HTTPS needed)
 - No license required — DevBox runs in test mode with a test key
