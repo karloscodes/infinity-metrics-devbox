@@ -131,10 +131,24 @@ fi
 ADMIN_EMAIL="admin@example.com"
 ADMIN_PASSWORD="devbox"
 print_info "Ensuring admin user ($ADMIN_EMAIL) exists..."
-if run_compose exec -T infinity-web sh -lc "/app/imctl create-admin-user '$ADMIN_EMAIL' '$ADMIN_PASSWORD' >/dev/null 2>&1 || /app/imctl change-admin-password '$ADMIN_EMAIL' '$ADMIN_PASSWORD' >/dev/null 2>&1"; then
-  print_status "Admin user ready"
+IMCTL_OK=$(run_compose exec -T infinity-web sh -lc 'test -x /app/imctl && echo OK || echo MISSING' 2>/dev/null || echo MISSING)
+if [ "$IMCTL_OK" = "OK" ]; then
+  if run_compose exec -T infinity-web sh -lc "/app/imctl create-admin-user '$ADMIN_EMAIL' '$ADMIN_PASSWORD' >/dev/null 2>&1 || /app/imctl change-admin-password '$ADMIN_EMAIL' '$ADMIN_PASSWORD' >/dev/null 2>&1"; then
+    print_status "Admin user ready (via imctl)"
+  else
+    print_warn "imctl failed to set admin user"
+  fi
 else
-  print_warn "Could not ensure admin user via imctl. You can set it manually in the app."
+  print_warn "imctl not found in container; attempting fallback check"
+fi
+
+# Final check: ensure at least one user exists
+USER_COUNT=$(run_compose exec -T infinity-web sh -lc "sqlite3 /app/storage/infinity-metrics-test.db 'SELECT COUNT(*) FROM users;' 2>/dev/null || echo 0" | tr -dc '0-9')
+if [ "$USER_COUNT" = "" ]; then USER_COUNT=0; fi
+if [ "$USER_COUNT" -gt 0 ]; then
+  print_status "Detected $USER_COUNT user(s) in database"
+else
+  print_warn "No users detected; onboarding may appear. You can login after creating an admin in the UI."
 fi
 
 
