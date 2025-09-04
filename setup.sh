@@ -77,15 +77,9 @@ fi
 run_compose() { (cd "$WORKDIR" && $COMPOSE_CMD "$@"); }
 
 print_info "Starting DevBox services..."
-# Clean up any existing containers with fixed names
-if docker ps -a --format '{{.Names}}' | grep -q '^infinity-metrics-devbox$'; then
-  print_warn "Found existing container 'infinity-metrics-devbox' — removing it"
-  docker rm -f infinity-metrics-devbox >/dev/null 2>&1 || true
-fi
-if docker ps -a --format '{{.Names}}' | grep -q '^caddy-devbox$'; then
-  print_warn "Found existing container 'caddy-devbox' — removing it"
-  docker rm -f caddy-devbox >/dev/null 2>&1 || true
-fi
+# Clean up any existing containers with fixed names (best-effort)
+docker rm -f infinity-metrics-devbox >/dev/null 2>&1 || true
+docker rm -f caddy-devbox >/dev/null 2>&1 || true
 run_compose up -d
 
 # Wait for health via Caddy HTTP
