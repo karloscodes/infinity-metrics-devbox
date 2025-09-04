@@ -7,8 +7,8 @@ One-command local environment to explore InfinityMetrics with a beautiful, inter
 Run this from your terminal:
 
 ```bash
-# GitHub Pages (always latest)
-curl -fsSL https://karloscodes.github.io/infinity-metrics-devbox/setup.sh | bash
+# Raw GitHub (main branch)
+curl -fsSL https://raw.githubusercontent.com/karloscodes/infinity-metrics-devbox/refs/heads/main/setup.sh | bash
 ```
 
 - Demo site: http://localhost:8080
