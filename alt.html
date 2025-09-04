@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>∞ DevBox · Neural Subspace ∞</title>
+  <script defer src="/y/api/v1/sdk.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap');
+    
+    :root { 
+      --bg: #000;
+      --text: #ffffff;
+      --muted: #888888;
+      --accent: #aaff00;
+      --bright-lime: #aaff00;
+      --dark-lime: #88cc00;
+      --darker: #333333;
+    }
+    
+    /* Matrix rain effect */
+    .matrix-bg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+      overflow: hidden;
+      pointer-events: none;
+    }
+    
+    .matrix-column {
+      position: absolute;
+      color: var(--bright-lime);
+      font-family: 'Source Code Pro', monospace;
+      font-size: 12px;
+      line-height: 16px;
+      animation: matrix-fall linear infinite;
+      opacity: 0.1;
+    }
+    
+    @keyframes matrix-fall {
+      0% { transform: translateY(-100vh); opacity: 1; }
+      100% { transform: translateY(100vh); opacity: 0; }
+    }
+    
+    @keyframes glitch {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-2px); }
+      40% { transform: translateX(2px); }
+      60% { transform: translateX(-1px); }
+      80% { transform: translateX(1px); }
+    }
+    
+    .glitch { animation: glitch 0.4s ease-in-out infinite alternate; }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+    
+    .pulse { animation: pulse 2.5s ease-in-out infinite; }
+    
+    body {
+      margin:0; 
+      min-height:100vh; 
+      color:var(--text);
+      background: var(--bg);
+      font-family: 'Source Code Pro', 'Fira Code', 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      display:flex; 
+      align-items:center; 
+      justify-content:center;
+      position: relative;
+      font-weight: 600;
+    }
+    
+    .wrap { 
+      max-width:800px; 
+      padding:32px; 
+      border: 3px solid var(--bright-lime);
+      border-radius: 0; 
+      background: rgba(0,0,0,0.95);
+      box-shadow: 
+        6px 6px 0px var(--bright-lime),
+        12px 12px 0px rgba(0,0,0,0.8);
+      position: relative;
+      overflow: hidden;
+      backdrop-filter: blur(4px);
+    }
+    
+    h1 { 
+      margin:0 0 16px; 
+      font-size:32px; 
+      color: var(--text);
+      text-align: center;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: -0.5px;
+    }
+    
+    .ascii-art {
+      color: var(--bright-lime);
+      font-size: 10px;
+      line-height: 12px;
+      text-align: center;
+      margin: 16px 0;
+      font-weight: 600;
+    }
+    
+    p { 
+      margin:0 0 20px; 
+      color: var(--muted);
+      line-height: 1.6;
+      font-weight: 500;
+    }
+    
+    a.btn { 
+      display:inline-block; 
+      padding:16px 24px; 
+      border-radius: 0; 
+      background: var(--bright-lime); 
+      color: #000; 
+      text-decoration:none; 
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-size: 14px;
+      border: 3px solid var(--bright-lime);
+      box-shadow: 5px 5px 0px var(--darker);
+      font-family: 'Source Code Pro', monospace;
+      transition: all 0.2s ease;
+    }
+    
+    a.btn:hover {
+      transform: translate(-2px, -2px);
+      box-shadow: 7px 7px 0px var(--darker);
+    }
+    
+    a.btn:active {
+      transform: translate(2px, 2px);
+      box-shadow: 3px 3px 0px var(--darker);
+    }
+    
+    code { 
+      background: rgba(0,0,0,0.8); 
+      color: var(--bright-lime);
+      padding: 3px 8px; 
+      border-radius: 0; 
+      border: 1px solid var(--bright-lime);
+      font-weight: 600;
+    }
+    
+    .status-indicator {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      background: var(--bright-lime);
+      border-radius: 50%;
+      animation: pulse 1s ease-in-out infinite;
+      margin-right: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="matrix-bg" id="matrixBg"></div>
+  
+  <div class="wrap">
+    <div class="ascii-art">
+      ╔══════════════════════════════════════════╗<br>
+      ║    🛸 NEURAL SUBSPACE INTERFACE 🛸       ║<br>
+      ║          [DIMENSIONAL GATEWAY]           ║<br>
+      ╚══════════════════════════════════════════╝
+    </div>
+    
+    <h1>SUBPAGE LOADED</h1>
+    
+    <p>
+      <span class="status-indicator"></span>
+      Current path: <code>/alt.html</code><br>
+      SDK integration: <span style="color: var(--bright-lime);">ACTIVE</span><br>
+      Tracking status: <span style="color: var(--bright-lime);">COMPLETED</span>
+    </p>
+    
+    <p>
+      This subpage successfully loaded the InfinityMetrics SDK.<br>
+      Page view has been registered and transmitted to analytics.<br>
+      Navigation data captured for multi-page tracking demo.
+    </p>
+    
+    <div style="text-align: center; margin-top: 32px;">
+      <a class="btn pulse" href="/">RETURN TO MAIN</a>
+    </div>
+    
+    <div class="ascii-art" style="margin-top: 24px;">
+      ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░<br>
+      ░░░ SUBSPACE TRANSMISSION SUCCESSFUL ░░░<br>
+      ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+    </div>
+  </div>
+
+  <script>
+    // Matrix rain effect for subpage
+    function initMatrix() {
+      const matrixBg = document.getElementById('matrixBg');
+      const characters = 'アカサタナハマヤラワガザダバパイキシチニヒミリヰギジヂビピウクスツヌフムユルグズヅブプエケセテネヘメレヱゲゼデベペオコソトノホモヨロヲゴゾドボポヴッン0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      
+      const columns = Math.floor(window.innerWidth / 25);
+      
+      for (let i = 0; i < columns; i++) {
+        createMatrixColumn(i * 25, characters, matrixBg);
+      }
+    }
+    
+    function createMatrixColumn(x, characters, container) {
+      const column = document.createElement('div');
+      column.className = 'matrix-column';
+      column.style.left = x + 'px';
+      column.style.animationDuration = (Math.random() * 4 + 3) + 's';
+      column.style.animationDelay = Math.random() * 3 + 's';
+      
+      const length = Math.random() * 15 + 8;
+      let text = '';
+      for (let i = 0; i < length; i++) {
+        text += characters[Math.floor(Math.random() * characters.length)] + '<br>';
+      }
+      column.innerHTML = text;
+      
+      container.appendChild(column);
+      
+      // Remove and recreate after animation
+      setTimeout(() => {
+        if (column.parentNode) {
+          column.parentNode.removeChild(column);
+          createMatrixColumn(x, characters, container);
+        }
+      }, (parseFloat(column.style.animationDuration) * 1000) + 1000);
+    }
+
+    // Initialize matrix on page load
+    if (document.readyState !== 'loading') {
+      initMatrix();
+    } else {
+      document.addEventListener('DOMContentLoaded', initMatrix);
+    }
+  </script>
+</body>
+</html>

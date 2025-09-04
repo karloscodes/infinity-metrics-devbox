@@ -1,0 +1,13 @@
+# Local runtime artifacts
+storage/
+logs/
+caddy/
+*.log
+
+# OS junk
+.DS_Store
+
+# Editors
+.idea/
+.vscode/
+
