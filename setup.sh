@@ -82,18 +82,31 @@ docker rm -f infinity-metrics-devbox >/dev/null 2>&1 || true
 docker rm -f caddy-devbox >/dev/null 2>&1 || true
 run_compose up -d
 
-# Wait for health via Caddy HTTP
+# Wait for health via Caddy HTTP and ensure database is accessible
 print_info "Waiting for InfinityMetrics to be ready..."
+HEALTH_READY=false
 for i in {1..30}; do
   if curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/_health | grep -q "200"; then
-    print_status "InfinityMetrics is ready!"
-    break
+    # Also check if we can access the database via the container
+    if run_compose exec -T infinity-web sh -lc "sqlite3 /app/storage/infinity-metrics-test.db 'SELECT 1;'" >/dev/null 2>&1; then
+      print_status "InfinityMetrics and database are ready!"
+      HEALTH_READY=true
+      break
+    else
+      print_info "HTTP ready, waiting for database initialization... ($i/30)"
+    fi
+  else
+    print_info "Waiting for InfinityMetrics to start... ($i/30)"
   fi
   sleep 2
   if [ $i -eq 30 ]; then
-    print_warn "InfinityMetrics may still be starting up."
+    print_warn "InfinityMetrics may still be starting up. Proceeding anyway..."
   fi
 done
+
+if [ "$HEALTH_READY" = false ]; then
+  print_warn "InfinityMetrics may not be fully ready. User creation might fail."
+fi
 
 # Safety guard: ensure container runs in test mode
 ENV_MODE=$(run_compose exec -T infinity-web sh -lc 'printenv INFINITY_METRICS_ENV || echo ""' 2>/dev/null || true)
@@ -131,16 +144,25 @@ fi
 ADMIN_EMAIL="admin@example.com"
 ADMIN_PASSWORD="devbox"
 print_info "Ensuring admin user ($ADMIN_EMAIL) exists..."
-IMCTL_OK=$(run_compose exec -T infinity-web sh -lc 'test -x /app/imctl && echo OK || echo MISSING' 2>/dev/null || echo MISSING)
-if [ "$IMCTL_OK" = "OK" ]; then
-  if run_compose exec -T infinity-web sh -lc "/app/imctl create-admin-user '$ADMIN_EMAIL' '$ADMIN_PASSWORD' >/dev/null 2>&1 || /app/imctl change-admin-password '$ADMIN_EMAIL' '$ADMIN_PASSWORD' >/dev/null 2>&1"; then
-    print_status "Admin user ready (via imctl)"
+
+# Retry user creation with better error handling
+USER_CREATION_SUCCESS=false
+for attempt in {1..3}; do
+  IMCTL_OK=$(run_compose exec -T infinity-web sh -lc 'test -x /app/imctl && echo OK || echo MISSING' 2>/dev/null || echo MISSING)
+  if [ "$IMCTL_OK" = "OK" ]; then
+    if run_compose exec -T infinity-web sh -lc "/app/imctl create-admin-user '$ADMIN_EMAIL' '$ADMIN_PASSWORD' >/dev/null 2>&1 || /app/imctl change-admin-password '$ADMIN_EMAIL' '$ADMIN_PASSWORD' >/dev/null 2>&1"; then
+      print_status "Admin user ready (via imctl)"
+      USER_CREATION_SUCCESS=true
+      break
+    else
+      print_warn "imctl attempt $attempt failed, retrying..."
+      sleep 2
+    fi
   else
-    print_warn "imctl failed to set admin user"
+    print_warn "imctl not found in container (attempt $attempt)"
+    sleep 2
   fi
-else
-  print_warn "imctl not found in container; attempting fallback check"
-fi
+done
 
 # Final check: ensure at least one user exists
 USER_COUNT=$(run_compose exec -T infinity-web sh -lc "sqlite3 /app/storage/infinity-metrics-test.db 'SELECT COUNT(*) FROM users;' 2>/dev/null || echo 0" | tr -dc '0-9')
@@ -148,7 +170,11 @@ if [ "$USER_COUNT" = "" ]; then USER_COUNT=0; fi
 if [ "$USER_COUNT" -gt 0 ]; then
   print_status "Detected $USER_COUNT user(s) in database"
 else
-  print_warn "No users detected; onboarding may appear. You can login after creating an admin in the UI."
+  print_error "CRITICAL: No users detected in database! Admin user creation failed."
+  print_error "This will cause the onboarding flow to appear instead of the login page."
+  print_info "You can manually create a user by running:"
+  print_info "  cd $WORKDIR && $COMPOSE_CMD exec infinity-web /app/imctl create-admin-user '$ADMIN_EMAIL' '$ADMIN_PASSWORD'"
+  print_warn "Continuing anyway, but /admin will redirect to onboarding..."
 fi
 
 
