@@ -127,12 +127,23 @@ else
   print_warn "Could not persist license key into DB. Env key will still be used."
 fi
 
+# Ensure an admin user exists with known credentials (hardcoded)
+ADMIN_EMAIL="admin@example.com"
+ADMIN_PASSWORD="devbox"
+print_info "Ensuring admin user ($ADMIN_EMAIL) exists..."
+if run_compose exec -T infinity-web sh -lc "/app/imctl create-admin-user '$ADMIN_EMAIL' '$ADMIN_PASSWORD' >/dev/null 2>&1 || /app/imctl change-admin-password '$ADMIN_EMAIL' '$ADMIN_PASSWORD' >/dev/null 2>&1"; then
+  print_status "Admin user ready"
+else
+  print_warn "Could not ensure admin user via imctl. You can set it manually in the app."
+fi
+
 
 echo ""
 echo "🎉 InfinityMetrics DevBox is Ready!"
 echo "==================================="
 print_status "Demo:     http://localhost:8080"
 print_status "Dashboard: http://localhost:8080/admin"
+print_status "Admin:     admin@example.com / devbox"
 print_status "Logs:     $COMPOSE_CMD logs -f"
 echo ""
 # No HTTPS required in DevBox; served over HTTP on :8080
