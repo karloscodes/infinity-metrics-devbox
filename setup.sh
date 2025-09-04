@@ -60,8 +60,24 @@ print_info "Using prebuilt InfinityMetrics image..."
 docker pull karloscodes/infinity-metrics-beta:latest >/dev/null || true
 print_status "Image ready"
 
+# Ensure compose files exist; if not, fetch them to a temp folder
+REPO_RAW_BASE="https://raw.githubusercontent.com/karloscodes/infinity-metrics-devbox/refs/heads/main"
+WORKDIR="$PWD"
+if [ ! -f "$WORKDIR/docker-compose.yml" ]; then
+  WORKDIR="$(mktemp -d -t im-devbox-XXXX)"
+  print_info "Fetching DevBox assets into $WORKDIR"
+  curl -fsSL "$REPO_RAW_BASE/docker-compose.yml" -o "$WORKDIR/docker-compose.yml"
+  curl -fsSL "$REPO_RAW_BASE/Caddyfile" -o "$WORKDIR/Caddyfile"
+  curl -fsSL "$REPO_RAW_BASE/devbox.html" -o "$WORKDIR/devbox.html"
+  curl -fsSL "$REPO_RAW_BASE/alt.html" -o "$WORKDIR/alt.html"
+  print_status "Assets downloaded"
+fi
+
+# Helper to run compose in the working directory
+run_compose() { (cd "$WORKDIR" && $COMPOSE_CMD "$@"); }
+
 print_info "Starting DevBox services..."
-$COMPOSE_CMD up -d
+run_compose up -d
 
 # Wait for health via Caddy HTTP
 print_info "Waiting for InfinityMetrics to be ready..."
@@ -77,7 +93,7 @@ for i in {1..30}; do
 done
 
 # Safety guard: ensure container runs in test mode
-ENV_MODE=$($COMPOSE_CMD exec -T infinity-web sh -lc 'printenv INFINITY_METRICS_ENV || echo ""' 2>/dev/null || true)
+ENV_MODE=$(run_compose exec -T infinity-web sh -lc 'printenv INFINITY_METRICS_ENV || echo ""' 2>/dev/null || true)
 if [ "$ENV_MODE" != "test" ]; then
   print_error "DevBox must run with INFINITY_METRICS_ENV=test (got: '$ENV_MODE'). Aborting to prevent misuse."
   exit 1
@@ -85,7 +101,7 @@ fi
 print_status "Verified test mode"
 
 # Safety guard: ensure test-only license key is set
-LIC_KEY=$($COMPOSE_CMD exec -T infinity-web sh -lc 'printenv INFINITY_METRICS_LICENSE_KEY || echo ""' 2>/dev/null || true)
+LIC_KEY=$(run_compose exec -T infinity-web sh -lc 'printenv INFINITY_METRICS_LICENSE_KEY || echo ""' 2>/dev/null || true)
 if [ "$LIC_KEY" != "IM-DEVBOX-TEST-ONLY" ]; then
   print_error "Unexpected license key inside container. Expected IM-DEVBOX-TEST-ONLY. Aborting."
   exit 1
@@ -94,7 +110,7 @@ print_status "Verified test license key"
 
 # Ensure a 'localhost' website exists for event ingestion
 print_info "Ensuring 'localhost' website exists..."
-if $COMPOSE_CMD exec -T infinity-web sh -lc "sqlite3 /app/storage/infinity-metrics-test.db \"INSERT OR IGNORE INTO websites (domain, created_at) VALUES ('localhost', datetime('now'));\"" >/dev/null 2>&1; then
+if run_compose exec -T infinity-web sh -lc "sqlite3 /app/storage/infinity-metrics-test.db \"INSERT OR IGNORE INTO websites (domain, created_at) VALUES ('localhost', datetime('now'));\"" >/dev/null 2>&1; then
   print_status "Website 'localhost' is present"
 else
   print_warn "Could not create 'localhost' website automatically. You can add it later in the dashboard."
@@ -102,7 +118,7 @@ fi
 
 # Ensure test license key is persisted in DB settings (overrides any stale value)
 print_info "Persisting test license key in settings..."
-if $COMPOSE_CMD exec -T infinity-web sh -lc "sqlite3 /app/storage/infinity-metrics-test.db \"INSERT INTO settings (key, value, created_at, updated_at) VALUES ('license_key','IM-DEVBOX-TEST-ONLY', datetime('now'), datetime('now')) ON CONFLICT(key) DO UPDATE SET value='IM-DEVBOX-TEST-ONLY', updated_at=datetime('now');\"" >/dev/null 2>&1; then
+if run_compose exec -T infinity-web sh -lc "sqlite3 /app/storage/infinity-metrics-test.db \"INSERT INTO settings (key, value, created_at, updated_at) VALUES ('license_key','IM-DEVBOX-TEST-ONLY', datetime('now'), datetime('now')) ON CONFLICT(key) DO UPDATE SET value='IM-DEVBOX-TEST-ONLY', updated_at=datetime('now');\"" >/dev/null 2>&1; then
   print_status "License key persisted to DB"
 else
   print_warn "Could not persist license key into DB. Env key will still be used."
