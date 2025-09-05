@@ -76,6 +76,16 @@ fi
 # Helper to run compose in the working directory
 run_compose() { (cd "$WORKDIR" && $COMPOSE_CMD "$@"); }
 
+# Helper to run commands in infinity-web container (fallback to docker exec if compose fails)
+run_in_container() {
+  if run_compose exec -T infinity-web sh -lc "$1" 2>/dev/null; then
+    return 0
+  else
+    # Fallback to direct docker exec if compose context fails
+    docker exec infinity-metrics-devbox sh -lc "$1" 2>/dev/null || return 1
+  fi
+}
+
 print_info "Starting DevBox services..."
 # Clean up any existing containers with fixed names (best-effort)
 docker rm -f infinity-metrics-devbox >/dev/null 2>&1 || true
@@ -88,7 +98,7 @@ HEALTH_READY=false
 for i in {1..30}; do
   if curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/_health | grep -q "200"; then
     # Also check if we can access the database via the container
-    if run_compose exec -T infinity-web sh -lc "sqlite3 /app/storage/infinity-metrics-test.db 'SELECT 1;'" >/dev/null 2>&1; then
+    if run_in_container "sqlite3 /app/storage/infinity-metrics-test.db 'SELECT 1;'" >/dev/null 2>&1; then
       print_status "InfinityMetrics and database are ready!"
       HEALTH_READY=true
       break
@@ -109,7 +119,7 @@ if [ "$HEALTH_READY" = false ]; then
 fi
 
 # Safety guard: ensure container runs in test mode
-ENV_MODE=$(run_compose exec -T infinity-web sh -lc 'printenv INFINITY_METRICS_ENV || echo ""' 2>/dev/null || true)
+ENV_MODE=$(run_in_container 'printenv INFINITY_METRICS_ENV || echo ""' 2>/dev/null || echo "")
 if [ "$ENV_MODE" != "test" ]; then
   print_error "DevBox must run with INFINITY_METRICS_ENV=test (got: '$ENV_MODE'). Aborting to prevent misuse."
   exit 1
@@ -117,7 +127,7 @@ fi
 print_status "Verified test mode"
 
 # Safety guard: ensure test-only license key is set
-LIC_KEY=$(run_compose exec -T infinity-web sh -lc 'printenv INFINITY_METRICS_LICENSE_KEY || echo ""' 2>/dev/null || true)
+LIC_KEY=$(run_in_container 'printenv INFINITY_METRICS_LICENSE_KEY || echo ""' 2>/dev/null || echo "")
 if [ "$LIC_KEY" != "IM-DEVBOX-TEST-ONLY" ]; then
   print_error "Unexpected license key inside container. Expected IM-DEVBOX-TEST-ONLY. Aborting."
   exit 1
@@ -126,7 +136,7 @@ print_status "Verified test license key"
 
 # Ensure a 'localhost' website exists for event ingestion
 print_info "Ensuring 'localhost' website exists..."
-if run_compose exec -T infinity-web sh -lc "sqlite3 /app/storage/infinity-metrics-test.db \"INSERT OR IGNORE INTO websites (domain, created_at) VALUES ('localhost', datetime('now'));\"" >/dev/null 2>&1; then
+if run_in_container "sqlite3 /app/storage/infinity-metrics-test.db \"INSERT OR IGNORE INTO websites (domain, created_at) VALUES ('localhost', datetime('now'));\"" >/dev/null 2>&1; then
   print_status "Website 'localhost' is present"
 else
   print_warn "Could not create 'localhost' website automatically. You can add it later in the dashboard."
@@ -134,7 +144,7 @@ fi
 
 # Ensure test license key is persisted in DB settings (overrides any stale value)
 print_info "Persisting test license key in settings..."
-if run_compose exec -T infinity-web sh -lc "sqlite3 /app/storage/infinity-metrics-test.db \"INSERT INTO settings (key, value, created_at, updated_at) VALUES ('license_key','IM-DEVBOX-TEST-ONLY', datetime('now'), datetime('now')) ON CONFLICT(key) DO UPDATE SET value='IM-DEVBOX-TEST-ONLY', updated_at=datetime('now');\"" >/dev/null 2>&1; then
+if run_in_container "sqlite3 /app/storage/infinity-metrics-test.db \"INSERT INTO settings (key, value, created_at, updated_at) VALUES ('license_key','IM-DEVBOX-TEST-ONLY', datetime('now'), datetime('now')) ON CONFLICT(key) DO UPDATE SET value='IM-DEVBOX-TEST-ONLY', updated_at=datetime('now');\"" >/dev/null 2>&1; then
   print_status "License key persisted to DB"
 else
   print_warn "Could not persist license key into DB. Env key will still be used."
@@ -148,9 +158,9 @@ print_info "Ensuring admin user ($ADMIN_EMAIL) exists..."
 # Retry user creation with better error handling
 USER_CREATION_SUCCESS=false
 for attempt in {1..3}; do
-  IMCTL_OK=$(run_compose exec -T infinity-web sh -lc 'test -x /app/imctl && echo OK || echo MISSING' 2>/dev/null || echo MISSING)
+  IMCTL_OK=$(run_in_container 'test -x /app/imctl && echo OK || echo MISSING' 2>/dev/null || echo MISSING)
   if [ "$IMCTL_OK" = "OK" ]; then
-    if run_compose exec -T infinity-web sh -lc "/app/imctl create-admin-user '$ADMIN_EMAIL' '$ADMIN_PASSWORD' >/dev/null 2>&1 || /app/imctl change-admin-password '$ADMIN_EMAIL' '$ADMIN_PASSWORD' >/dev/null 2>&1"; then
+    if run_in_container "/app/imctl create-admin-user '$ADMIN_EMAIL' '$ADMIN_PASSWORD' >/dev/null 2>&1 || /app/imctl change-admin-password '$ADMIN_EMAIL' '$ADMIN_PASSWORD' >/dev/null 2>&1"; then
       print_status "Admin user ready (via imctl)"
       USER_CREATION_SUCCESS=true
       break
@@ -165,7 +175,7 @@ for attempt in {1..3}; do
 done
 
 # Final check: ensure at least one user exists
-USER_COUNT=$(run_compose exec -T infinity-web sh -lc "sqlite3 /app/storage/infinity-metrics-test.db 'SELECT COUNT(*) FROM users;' 2>/dev/null || echo 0" | tr -dc '0-9')
+USER_COUNT=$(run_in_container "sqlite3 /app/storage/infinity-metrics-test.db 'SELECT COUNT(*) FROM users;' 2>/dev/null || echo 0" | tr -dc '0-9')
 if [ "$USER_COUNT" = "" ]; then USER_COUNT=0; fi
 if [ "$USER_COUNT" -gt 0 ]; then
   print_status "Detected $USER_COUNT user(s) in database"
