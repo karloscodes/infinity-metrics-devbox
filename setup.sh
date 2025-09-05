@@ -76,14 +76,9 @@ fi
 # Helper to run compose in the working directory
 run_compose() { (cd "$WORKDIR" && $COMPOSE_CMD "$@"); }
 
-# Helper to run commands in infinity-web container (fallback to docker exec if compose fails)
+# Helper to run commands in infinity-web container (use direct docker exec after containers are healthy)
 run_in_container() {
-  if run_compose exec -T infinity-web sh -lc "$1" 2>/dev/null; then
-    return 0
-  else
-    # Fallback to direct docker exec if compose context fails
-    docker exec infinity-metrics-devbox sh -lc "$1" 2>/dev/null || return 1
-  fi
+  docker exec infinity-metrics-devbox sh -lc "$1" 2>/dev/null || return 1
 }
 
 print_info "Starting DevBox services..."
