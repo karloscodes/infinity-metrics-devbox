@@ -189,7 +189,7 @@ echo "==================================="
 print_status "Demo:     http://localhost:8080"
 print_status "Dashboard: http://localhost:8080/admin"
 print_status "Admin:     admin@example.com / devbox"
-print_status "Logs:     $COMPOSE_CMD logs -f"
+print_status "Logs:     docker logs -f infinity-metrics-devbox"
 echo ""
 # No HTTPS required in DevBox; served over HTTP on :8080
 echo ""
