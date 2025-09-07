@@ -60,17 +60,18 @@ print_info "Using prebuilt InfinityMetrics image..."
 docker pull karloscodes/infinity-metrics-beta:latest >/dev/null || true
 print_status "Image ready"
 
-# Ensure compose files exist; if not, fetch them to a temp folder
+# Ensure compose files exist; if not, fetch them to current directory
 REPO_RAW_BASE="https://raw.githubusercontent.com/karloscodes/infinity-metrics-devbox/refs/heads/main"
 WORKDIR="$PWD"
 if [ ! -f "$WORKDIR/docker-compose.yml" ]; then
-  WORKDIR="$(mktemp -d -t im-devbox-XXXX)"
-  print_info "Fetching DevBox assets into $WORKDIR"
+  print_info "Downloading InfinityMetrics DevBox to current directory"
   curl -fsSL "$REPO_RAW_BASE/docker-compose.yml" -o "$WORKDIR/docker-compose.yml"
   curl -fsSL "$REPO_RAW_BASE/Caddyfile" -o "$WORKDIR/Caddyfile"
   curl -fsSL "$REPO_RAW_BASE/devbox.html" -o "$WORKDIR/devbox.html"
   curl -fsSL "$REPO_RAW_BASE/alt.html" -o "$WORKDIR/alt.html"
-  print_status "Assets downloaded"
+  print_status "DevBox files downloaded to current directory"
+  print_info "You can now stop the DevBox with: docker compose down"
+  print_info "Or restart it with: docker compose up -d"
 fi
 
 # Helper to run compose in the working directory
@@ -189,9 +190,11 @@ echo "==================================="
 print_status "Demo:     http://localhost:8080"
 print_status "Dashboard: http://localhost:8080/admin"
 print_status "Admin:     admin@example.com / devbox"
-print_status "Logs:     docker logs -f infinity-metrics-devbox"
 echo ""
-# No HTTPS required in DevBox; served over HTTP on :8080
+echo "🔧 Management Commands:"
+print_status "Logs:     docker logs -f infinity-metrics-devbox"
+print_status "Stop:     docker compose down"
+print_status "Restart:  docker compose up -d"
 echo ""
 
 # Try opening demo

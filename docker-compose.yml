@@ -11,6 +11,7 @@ services:
       - INFINITY_METRICS_LOG_LEVEL=info
       - INFINITY_METRICS_APP_PORT=8080
       - INFINITY_METRICS_LICENSE_KEY=IM-DEVBOX-TEST-ONLY
+      - INFINITY_METRICS_JOB_INTERVAL_SECONDS=3
       - SERVER_INSTANCE_ID=infinity-devbox-$(date +%s)
       - TZ=UTC
     volumes:
@@ -37,7 +38,6 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - ./devbox.html:/usr/share/caddy/devbox.html:ro
       - ./alt.html:/usr/share/caddy/alt.html:ro
-      - ./world.html:/usr/share/caddy/world.html:ro
       - caddy_data:/data
       - caddy_config:/config
     networks:
