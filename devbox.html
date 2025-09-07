@@ -450,29 +450,6 @@
       padding: 20px;
     }
 
-    /* Confetti */
-    .confetti-piece {
-      position: fixed;
-      top: -10px;
-      width: 8px;
-      height: 12px;
-      opacity: 0.95;
-      will-change: transform, opacity;
-      z-index: 9999;
-      animation: confetti-fall linear forwards;
-    }
-
-    @keyframes confetti-fall {
-      0% {
-        transform: translateY(-10px) rotate(0deg);
-        opacity: 1;
-      }
-
-      100% {
-        transform: translateY(110vh) rotate(720deg);
-        opacity: 0.9;
-      }
-    }
   </style>
 </head>
 
@@ -571,47 +548,6 @@
     }
 
     function rand(min, max) { return Math.random() * (max - min) + min; }
-    function confettiBurst(colors = ["#00ff41", "#00d9ff", "#7c4dff", "#ff006e", "#22c55e"]) {
-      const count = 100;
-      const shapes = ['◆', '◇', '▲', '▼', '●', '◯', '■', '□', '★', '☆'];
-
-      for (let i = 0; i < count; i++) {
-        const piece = document.createElement('div');
-        piece.className = 'confetti-piece';
-        piece.style.left = rand(5, 95) + 'vw';
-        piece.style.background = colors[Math.floor(Math.random() * colors.length)];
-        piece.style.transform = `rotate(${Math.floor(rand(0, 360))}deg)`;
-        piece.style.fontSize = rand(8, 16) + 'px';
-        piece.style.fontFamily = "'JetBrains Mono', monospace";
-
-        const duration = rand(2.5, 4.5);
-        piece.style.animationDuration = duration + 's';
-
-        // Use shapes instead of just colored rectangles
-        if (Math.random() > 0.3) {
-          piece.innerText = shapes[Math.floor(Math.random() * shapes.length)];
-          piece.style.textShadow = `0 0 10px ${piece.style.background}`;
-          piece.style.background = 'transparent';
-          piece.style.color = colors[Math.floor(Math.random() * colors.length)];
-        } else {
-          piece.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
-        }
-
-        document.body.appendChild(piece);
-        setTimeout(() => piece.remove(), duration * 1000);
-      }
-
-      // Add screen flash effect
-      const flash = document.createElement('div');
-      flash.style.cssText = `
-        position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-        background: radial-gradient(circle, rgba(0,255,65,0.3), transparent);
-        pointer-events: none; z-index: 9998;
-        animation: flash 0.3s ease-out;
-      `;
-      document.body.appendChild(flash);
-      setTimeout(() => flash.remove(), 300);
-    }
 
     const flashKeyframes = `
       @keyframes flash {
